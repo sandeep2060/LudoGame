@@ -23,9 +23,6 @@ export function GameControls({
     <div className="game-controls">
       <p className="status-text">{statusText}</p>
       <div className="control-row">
-        <button type="button" className="primary-btn" onClick={onRollDice} disabled={!canRoll}>
-          {diceValue ? `Rolled ${diceValue}` : 'Roll dice'}
-        </button>
         <button type="button" className="ghost-btn" onClick={onReset}>
           Reset match
         </button>

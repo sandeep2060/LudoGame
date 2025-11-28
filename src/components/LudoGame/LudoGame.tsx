@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { GameState } from '../../types/game'
 import { createInitialGameState, LudoEngine } from '../../lib/gameLogic/ludoEngine'
-import { LudoBoard } from '../LudoBoard/LudoBoard'
-import { LudoBoard3D } from '../LudoBoard3D/LudoBoard3D'
-import { RealisticLudoBoard } from '../RealisticLudoBoard/RealisticLudoBoard'
+import { ClassicLudoBoard } from '../ClassicLudoBoard/ClassicLudoBoard'
 import { PlayerArea } from '../PlayerArea/PlayerArea'
 import { GameControls } from '../GameControls/GameControls'
 import { Betting } from '../Betting/Betting'
@@ -19,7 +17,7 @@ export function LudoGame({ currentUser }: LudoGameProps) {
   const [statusText, setStatusText] = useState('Roll the dice to begin the match.')
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null)
   const [gameBets, setGameBets] = useState<GameBet[]>([])
-  const [viewMode, setViewMode] = useState<'realistic' | '2d' | '3d'>('realistic') // Realistic, 2D, or 3D
+  const [isDiceRolling, setIsDiceRolling] = useState(false)
   const gameId = useMemo(() => `game-${Date.now()}`, [])
 
   const movablePieceIds = useMemo(
@@ -28,10 +26,15 @@ export function LudoGame({ currentUser }: LudoGameProps) {
   )
 
   const handleRollDice = () => {
+    if (isDiceRolling) return
+    setIsDiceRolling(true)
     SoundManager.playDiceRoll()
-    let nextStatus = ''
-    setSelectedPieceId(null) // Clear selection when rolling dice
-    setGameState((previous) => {
+    
+    // Simulate dice rolling animation
+    setTimeout(() => {
+      let nextStatus = ''
+      setSelectedPieceId(null) // Clear selection when rolling dice
+      setGameState((previous) => {
       if (previous.gameStatus === 'finished') {
         nextStatus = 'Match finished. Reset to play another round.'
         return previous
@@ -60,6 +63,8 @@ export function LudoGame({ currentUser }: LudoGameProps) {
     if (nextStatus) {
       setStatusText(nextStatus)
     }
+    setIsDiceRolling(false)
+    }, 1000) // 1 second rolling animation
   }
 
   const handleSelectPiece = (pieceId: string) => {
@@ -166,29 +171,6 @@ export function LudoGame({ currentUser }: LudoGameProps) {
 
   return (
     <div className="ludo-layout">
-      <div className="view-toggle">
-        <button
-          type="button"
-          className={`toggle-btn ${viewMode === 'realistic' ? 'active' : ''}`}
-          onClick={() => setViewMode('realistic')}
-        >
-          🎮 Realistic
-        </button>
-        <button
-          type="button"
-          className={`toggle-btn ${viewMode === '2d' ? 'active' : ''}`}
-          onClick={() => setViewMode('2d')}
-        >
-          2D View
-        </button>
-        <button
-          type="button"
-          className={`toggle-btn ${viewMode === '3d' ? 'active' : ''}`}
-          onClick={() => setViewMode('3d')}
-        >
-          3D View
-        </button>
-      </div>
       {currentUser && gameState.gameStatus === 'waiting' && (
         <Betting
           currentUser={currentUser}
@@ -197,60 +179,44 @@ export function LudoGame({ currentUser }: LudoGameProps) {
           onBetPlaced={handleBetPlaced}
         />
       )}
-      {viewMode === 'realistic' ? (
-        <RealisticLudoBoard
-          gameState={gameState}
-          movablePieceIds={movablePieceIds}
-          selectedPieceId={selectedPieceId}
-          onSelectPiece={handleSelectPiece}
-          onMovePiece={handleMovePiece}
-          currentPlayerIndex={gameState.currentPlayer}
-        />
-      ) : viewMode === '3d' ? (
-        <LudoBoard3D
-          gameState={gameState}
-          movablePieceIds={movablePieceIds}
-          selectedPieceId={selectedPieceId}
-          onSelectPiece={handleSelectPiece}
-          onMovePiece={handleMovePiece}
-        />
-      ) : (
-        <LudoBoard
-          gameState={gameState}
-          movablePieceIds={movablePieceIds}
-          selectedPieceId={selectedPieceId}
-          onSelectPiece={handleSelectPiece}
-          onMovePiece={handleMovePiece}
-        />
-      )}
+      <ClassicLudoBoard
+        gameState={gameState}
+        movablePieceIds={movablePieceIds}
+        selectedPieceId={selectedPieceId}
+        onSelectPiece={handleSelectPiece}
+        onMovePiece={handleMovePiece}
+        currentPlayerIndex={gameState.currentPlayer}
+        onRollDice={handleRollDice}
+        diceValue={gameState.diceValue}
+        isRolling={isDiceRolling}
+      />
 
-      <aside className="ludo-sidebar">
-        <div className="players-column">
-          {gameState.players.map((player) => (
-            <PlayerArea
-              key={player.id}
-              player={player}
-              isActive={player.id === gameState.currentPlayer}
-              movablePieceIds={movablePieceIds}
-              selectedPieceId={selectedPieceId}
-              onSelectPiece={handleSelectPiece}
-              onMovePiece={handleMovePiece}
-              diceValue={gameState.diceValue}
-            />
-          ))}
-        </div>
+        <aside className="ludo-sidebar">
+          <div className="players-column">
+            {gameState.players.map((player) => (
+              <PlayerArea
+                key={player.id}
+                player={player}
+                isActive={player.id === gameState.currentPlayer}
+                movablePieceIds={movablePieceIds}
+                selectedPieceId={selectedPieceId}
+                onSelectPiece={handleSelectPiece}
+                onMovePiece={handleMovePiece}
+                diceValue={gameState.diceValue}
+              />
+            ))}
+          </div>
 
-        <GameControls
-          currentPlayer={currentPlayer}
-          diceValue={gameState.diceValue}
-          onRollDice={handleRollDice}
-          canRoll={canRoll}
-          onReset={handleReset}
-          statusText={statusText}
-          isFinished={gameState.gameStatus === 'finished'}
-        />
-      </aside>
+          <GameControls
+            currentPlayer={currentPlayer}
+            diceValue={null}
+            onRollDice={() => {}}
+            canRoll={false}
+            onReset={handleReset}
+            statusText={statusText}
+            isFinished={gameState.gameStatus === 'finished'}
+          />
+        </aside>
     </div>
   )
 }
-
